@@ -2,36 +2,13 @@
 //! logging all transferred data to a file. Constants are injected at compile time via build.rs.
 
 use anyhow::Result;
-use std::path::PathBuf;
-use std::process::Stdio;
 use log::info;
 use log::LevelFilter::Info;
+use std::process::Stdio;
 use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::process::{ChildStderr, ChildStdin, ChildStdout, Command};
 
-// Compile‑time injected constants
-const TARGET_EXE_NAME: &str = env!("TARGET_EXE_NAME");
-
-// Write a log entry with timestamp and direction tag
-async fn write_log(log_path: &PathBuf, direction: &str, data: &[u8]) -> Result<()> {
-    use chrono::Local;
-    let timestamp = Local::now().to_rfc3339();
-    let entry = format!(
-        "[{}][{}] {}\n",
-        timestamp,
-        direction,
-        String::from_utf8_lossy(data)
-    );
-    let mut file = tokio::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(log_path)
-        .await?;
-    file.write_all(entry.as_bytes()).await?;
-    Ok(())
-}
-
-// Forward stdin to child stdin and log
+// Forward stdin to child stdin and log (using info!)
 async fn forward_stdin(child_stdin: ChildStdin) {
     let mut stdin = io::stdin();
     let mut child_stdin = child_stdin;
@@ -49,7 +26,7 @@ async fn forward_stdin(child_stdin: ChildStdin) {
             eprintln!("Error writing to child stdin: {}", e);
             break;
         }
-        info!("read from child stdin:\n\t{}", String::from_utf8_lossy(&buf[..n]));
+        info!("read from parent stdin:\n\t{}", String::from_utf8_lossy(&buf[..n]));
     }
 }
 
@@ -99,10 +76,12 @@ async fn forward_stderr(child_stderr: ChildStderr) {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let _ = custom_utils::logger::logger_feature(&format!("app-transfer-{TARGET_EXE_NAME}"), "info", Info, false).build();
+    let _ = custom_utils::logger::logger_feature(&format!("app-transfer"), "info", Info, false).build();
     // Resolve paths based on current working directory
-    let cwd = std::env::current_dir()?;
-    let target_path = cwd.join(TARGET_EXE_NAME);
+    let exe_path = std::env::current_exe()?;                         // 获取本程序完整路径
+    let exe_dir  = exe_path.parent()
+        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "Failed to get exe directory"))?;
+    let target_path = exe_dir.join("origin.exe");
 
     // Ensure the target executable exists
     if !target_path.is_file() {
