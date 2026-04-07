@@ -1,0 +1,15 @@
+[package]
+name = "app-transfer"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+chrono = "0.4"
+custom-utils = "0.10.21"
+log = "0.4.29"
+
+[features]
+default = ["custom-utils/prod"]
