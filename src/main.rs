@@ -76,9 +76,11 @@ async fn forward_stderr(child_stderr: ChildStderr) {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let _ = custom_utils::logger::logger_feature(&format!("app-transfer"), "info", Info, false).build();
+    let exe_path = std::env::current_exe()?;
+    let exe_name = exe_path.file_name().unwrap().to_str().unwrap().to_string();
+    // 获取本程序完整路径
+    let _ = custom_utils::logger::logger_feature(&format!("app-transfer_{exe_name}"), "info", Info, false).build();
     // Resolve paths based on current working directory
-    let exe_path = std::env::current_exe()?;                         // 获取本程序完整路径
     let exe_dir  = exe_path.parent()
         .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "Failed to get exe directory"))?;
     let target_path = exe_dir.join("origin.exe");
@@ -89,11 +91,16 @@ async fn main() -> Result<()> {
         std::process::exit(1);
     }
 
+    info!("{:?}", std::env::args_os());
+    info!("{:?}", std::env::vars_os());
+
     // Spawn the child process with piped stdio streams
     let mut child = Command::new(&target_path)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
+        .args(std::env::args_os().skip(1))
+        .envs(std::env::vars_os())
         .spawn()
         .expect("failed to spawn target executable");
 
