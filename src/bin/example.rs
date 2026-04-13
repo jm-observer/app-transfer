@@ -1,8 +1,8 @@
 // Example program: reads stdin, appends a suffix, writes to stdout, and prints a number to stderr every 5 seconds.
 
 use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt};
-use tokio::time::{self, Duration};
 use tokio::task;
+use tokio::time::{self, Duration};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
