@@ -120,6 +120,10 @@ async fn forward_stdin(child_stdin: ChildStdin) {
             error!("Error writing to child stdin: {}", e);
             break;
         }
+        if let Err(e) = child_stdin.flush().await {
+            error!("Failed to flush stdout: {}", e);
+            break;
+        }
         info!(
             "read from parent stdin:\n\t{}",
             String::from_utf8_lossy(&buf[..n])
@@ -145,8 +149,13 @@ async fn forward_stdout(child_stdout: ChildStdout) {
             error!("Error writing to stdout: {}", e);
             break;
         }
+        if let Err(e) = parent_stdout.flush().await {
+            error!("Failed to flush stdout: {}", e);
+            break;
+        }
         info!(
-            "read from child stdout:\n\t{}",
+            "read from child stdout:{}\n\t{}",
+            n,
             String::from_utf8_lossy(&buf[..n])
         );
     }
